@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Team Tasks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F5F1;
+    --card:#FFFFFF;
+    --ink:#20241F;
+    --ink-soft:#6B6F68;
+    --line:#E4E2DB;
+    --accent:#1F6B65;
+    --accent-soft:#DCEBE9;
+    --not-started:#8B93A1;
+    --not-started-bg:#EEF0F3;
+    --in-progress:#2E6E8E;
+    --in-progress-bg:#E4EEF3;
+    --blocked:#B1502E;
+    --blocked-bg:#F6E7E1;
+    --done:#3F8F5F;
+    --done-bg:#E5F2E9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:96px;
+  }
+  h1,h2,h3,.display{ font-family:'Space Grotesk',system-ui,sans-serif; }
+
+  header{
+    padding:28px 20px 18px;
+    position:sticky; top:0; z-index:5;
+    background:var(--bg);
+    border-bottom:1px solid var(--line);
+  }
+  header h1{
+    margin:0 0 2px;
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  header p{ margin:0; color:var(--ink-soft); font-size:13px; }
+
+  .distribution{
+    margin-top:16px;
+    height:6px;
+    border-radius:99px;
+    overflow:hidden;
+    display:flex;
+    background:var(--line);
+  }
+  .distribution span{ height:100%; }
+
+  .legend{
+    display:flex; gap:14px; margin-top:8px; flex-wrap:wrap;
+  }
+  .legend div{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--ink-soft); }
+  .legend i{ width:7px; height:7px; border-radius:50%; display:inline-block; }
+
+  .filters{
+    display:flex; gap:8px; padding:14px 20px 4px;
+    overflow-x:auto;
+  }
+  .filters button{
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink-soft);
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:500;
+    padding:7px 13px;
+    border-radius:99px;
+    white-space:nowrap;
+    cursor:pointer;
+  }
+  .filters button.active{
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+
+  main{ padding:12px 20px 20px; }
+
+  .empty{
+    text-align:center;
+    color:var(--ink-soft);
+    padding:60px 20px;
+    font-size:14px;
+  }
+
+  .task{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px 16px 14px;
+    margin-bottom:12px;
+  }
+  .task-top{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
+    cursor:pointer;
+  }
+  .task-title{ font-size:15.5px; font-weight:600; margin:0 0 4px; line-height:1.3; }
+  .task-meta{ font-size:12.5px; color:var(--ink-soft); }
+
+  .pill{
+    font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .pill.not-started{ color:var(--not-started); background:var(--not-started-bg); }
+  .pill.in-progress{ color:var(--in-progress); background:var(--in-progress-bg); }
+  .pill.blocked{ color:var(--blocked); background:var(--blocked-bg); }
+  .pill.done{ color:var(--done); background:var(--done-bg); }
+
+  .latest{
+    margin-top:10px;
+    font-size:13px;
+    color:var(--ink);
+    background:var(--bg);
+    border-radius:9px;
+    padding:9px 11px;
+  }
+  .latest b{ font-weight:600; color:var(--ink-soft); font-size:11px; display:block; margin-bottom:2px; }
+
+  .task-body{ display:none; margin-top:14px; border-top:1px solid var(--line); padding-top:14px; }
+  .task.open .task-body{ display:block; }
+
+  .status-row{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .status-row button{
+    font-family:inherit; font-size:11.5px; font-weight:600;
+    border:1px solid var(--line); background:var(--card);
+    padding:6px 10px; border-radius:8px; cursor:pointer; color:var(--ink-soft);
+  }
+  .status-row button.current{ border-color:var(--ink); color:var(--ink); }
+
+  .updates-list{ list-style:none; margin:0 0 12px; padding:0; }
+  .updates-list li{
+    font-size:13px; padding:8px 0; border-bottom:1px dashed var(--line);
+  }
+  .updates-list li:last-child{ border-bottom:none; }
+  .updates-list .date{ font-weight:600; color:var(--ink-soft); font-size:11.5px; display:block; margin-bottom:2px; }
+
+  .add-update{ display:flex; gap:8px; }
+  .add-update input{
+    flex:1; border:1px solid var(--line); border-radius:9px; padding:9px 11px;
+    font-family:inherit; font-size:13px; background:var(--bg);
+  }
+  .add-update button{
+    border:none; background:var(--accent); color:#fff; font-weight:600;
+    font-size:13px; padding:0 16px; border-radius:9px; cursor:pointer;
+  }
+
+  .fab{
+    position:fixed; right:20px; bottom:24px;
+    width:56px; height:56px; border-radius:50%;
+    background:var(--accent); color:#fff; border:none;
+    font-size:26px; line-height:56px; text-align:center;
+    box-shadow:0 8px 20px rgba(31,107,101,0.35);
+    cursor:pointer;
+  }
+
+  .sheet-overlay{
+    display:none; position:fixed; inset:0; background:rgba(20,22,19,0.45); z-index:10;
+    align-items:flex-end; justify-content:center;
+  }
+  .sheet-overlay.show{ display:flex; }
+  .sheet{
+    background:var(--card); width:100%; max-width:480px;
+    border-radius:18px 18px 0 0; padding:22px 20px 26px;
+  }
+  .sheet h2{ margin:0 0 16px; font-size:17px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; }
+  .field input, .field select{
+    width:100%; border:1px solid var(--line); border-radius:9px; padding:10px 11px;
+    font-family:inherit; font-size:14px; background:var(--bg); color:var(--ink);
+  }
+  .sheet-actions{ display:flex; gap:10px; margin-top:6px; }
+  .sheet-actions button{
+    flex:1; border:none; border-radius:10px; padding:12px; font-family:inherit;
+    font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .sheet-actions .cancel{ background:var(--bg); color:var(--ink-soft); }
+  .sheet-actions .save{ background:var(--accent); color:#fff; }
+
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:#fff; font-size:13px; padding:10px 16px; border-radius:99px;
+    opacity:0; transition:all .25s ease; pointer-events:none; z-index:20;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Team Tasks</h1>
+  <p id="subtitle">Loading…</p>
+  <div class="distribution" id="distribution"></div>
+  <div class="legend">
+    <div><i style="background:var(--not-started)"></i>Not started</div>
+    <div><i style="background:var(--in-progress)"></i>In progress</div>
+    <div><i style="background:var(--blocked)"></i>Blocked</div>
+    <div><i style="background:var(--done)"></i>Done</div>
+  </div>
+</header>
+
+<div class="filters" id="filters">
+  <button class="active" data-status="All">All</button>
+  <button data-status="Not Started">Not started</button>
+  <button data-status="In Progress">In progress</button>
+  <button data-status="Blocked">Blocked</button>
+  <button data-status="Done">Done</button>
+</div>
+
+<main id="taskList"></main>
+
+<button class="fab" id="openNewTask">+</button>
+
+<!-- New task sheet -->
+<div class="sheet-overlay" id="newTaskOverlay">
+  <div class="sheet">
+    <h2>New task</h2>
+    <div class="field">
+      <label>Task title</label>
+      <input id="newTitle" placeholder="e.g. Prepare client deck">
+    </div>
+    <div class="field">
+      <label>Assigner</label>
+      <input id="newAssigner" placeholder="Who assigned this?">
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="newStatus">
+        <option>Not Started</option>
+        <option>In Progress</option>
+        <option>Blocked</option>
+        <option>Done</option>
+      </select>
+    </div>
+    <div class="sheet-actions">
+      <button class="cancel" id="cancelNewTask">Cancel</button>
+      <button class="save" id="saveNewTask">Add task</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---- Paste your Apps Script Web App URL below ----
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzDih1gUGujZlc-kuRK41grFct2SnGW7KM2JhWKQ47gZaxxv8UOKgDfOoEY_Y0kPfnyYg/exec';
+
+  const STATUS_CLASS = {
+    'Not Started':'not-started','In Progress':'in-progress','Blocked':'blocked','Done':'done'
+  };
+  const STATUS_COLOR = {
+    'Not Started':'var(--not-started)','In Progress':'var(--in-progress)','Blocked':'var(--blocked)','Done':'var(--done)'
+  };
+
+  let tasks = [];
+  let activeFilter = 'All';
+
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 1800);
+  }
+
+  async function api(action, payload){
+    if(action === 'list'){
+      const res = await fetch(WEB_APP_URL + '?action=list');
+      return res.json();
+    }
+    const res = await fetch(WEB_APP_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, ...payload })
+    });
+    return res.json();
+  }
+
+  function fmtDate(iso){
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
+  }
+
+  function render(){
+    const list = document.getElementById('taskList');
+    const filtered = activeFilter === 'All' ? tasks : tasks.filter(t=>t.status===activeFilter);
+
+    if(!filtered.length){
+      list.innerHTML = '<div class="empty">No tasks here yet. Tap + to add one.</div>';
+    } else {
+      list.innerHTML = filtered.map(taskCard).join('');
+    }
+
+    // distribution bar
+    const dist = document.getElementById('distribution');
+    const total = tasks.length || 1;
+    const order = ['Not Started','In Progress','Blocked','Done'];
+    dist.innerHTML = order.map(s=>{
+      const count = tasks.filter(t=>t.status===s).length;
+      const pct = (count/total*100).toFixed(2);
+      return count ? `<span style="width:${pct}%;background:${STATUS_COLOR[s]}"></span>` : '';
+    }).join('');
+
+    document.getElementById('subtitle').textContent =
+      tasks.length ? `${tasks.length} task${tasks.length!==1?'s':''} tracked` : 'No tasks yet';
+
+    document.querySelectorAll('.task').forEach(el=>{
+      el.querySelector('.task-top').addEventListener('click', ()=>el.classList.toggle('open'));
+    });
+    document.querySelectorAll('.status-row button').forEach(btn=>{
+      btn.addEventListener('click', async (e)=>{
+        e.stopPropagation();
+        const id = btn.closest('.task').dataset.id;
+        const status = btn.dataset.status;
+        await api('updateStatus', {taskId:id, status});
+        toast('Status updated');
+        load();
+      });
+    });
+    document.querySelectorAll('.add-update').forEach(row=>{
+      row.querySelector('button').addEventListener('click', async (e)=>{
+        e.stopPropagation();
+        const id = row.closest('.task').dataset.id;
+        const input = row.querySelector('input');
+        if(!input.value.trim()) return;
+        await api('addUpdate', {taskId:id, comment:input.value.trim()});
+        input.value='';
+        toast('Update added');
+        load();
+      });
+    });
+  }
+
+  function taskCard(t){
+    const cls = STATUS_CLASS[t.status] || 'not-started';
+    const latest = t.updates[0];
+    return `
+    <div class="task" data-id="${t.id}">
+      <div class="task-top">
+        <div>
+          <p class="task-title">${escapeHtml(t.title)}</p>
+          <p class="task-meta">Assigned by ${escapeHtml(t.assigner || '—')}</p>
+        </div>
+        <span class="pill ${cls}">${t.status}</span>
+      </div>
+      ${latest ? `<div class="latest"><b>${fmtDate(latest.date)}</b>${escapeHtml(latest.comment)}</div>` : ''}
+      <div class="task-body">
+        <div class="status-row">
+          ${['Not Started','In Progress','Blocked','Done'].map(s=>
+            `<button data-status="${s}" class="${s===t.status?'current':''}">${s}</button>`
+          ).join('')}
+        </div>
+        <ul class="updates-list">
+          ${t.updates.length ? t.updates.map(u=>`<li><span class="date">${fmtDate(u.date)}</span>${escapeHtml(u.comment)}</li>`).join('') : '<li style="color:var(--ink-soft)">No updates yet.</li>'}
+        </ul>
+        <div class="add-update">
+          <input placeholder="Add an update…">
+          <button>Post</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function escapeHtml(str){
+    return String(str ?? '').replace(/[&<>"']/g, m => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+  }
+
+  async function load(){
+    try{
+      const data = await api('list');
+      tasks = data.tasks || [];
+      render();
+    }catch(err){
+      document.getElementById('subtitle').textContent = 'Could not load tasks — check WEB_APP_URL';
+    }
+  }
+
+  // filters
+  document.getElementById('filters').addEventListener('click', (e)=>{
+    if(e.target.tagName !== 'BUTTON') return;
+    document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'));
+    e.target.classList.add('active');
+    activeFilter = e.target.dataset.status;
+    render();
+  });
+
+  // new task sheet
+  const overlay = document.getElementById('newTaskOverlay');
+  document.getElementById('openNewTask').addEventListener('click', ()=>overlay.classList.add('show'));
+  document.getElementById('cancelNewTask').addEventListener('click', ()=>overlay.classList.remove('show'));
+  document.getElementById('saveNewTask').addEventListener('click', async ()=>{
+    const title = document.getElementById('newTitle').value.trim();
+    const assigner = document.getElementById('newAssigner').value.trim();
+    const status = document.getElementById('newStatus').value;
+    if(!title){ toast('Task title is required'); return; }
+    await api('addTask', {title, assigner, status});
+    document.getElementById('newTitle').value = '';
+    document.getElementById('newAssigner').value = '';
+    overlay.classList.remove('show');
+    toast('Task added');
+    load();
+  });
+
+  load();
+</script>
+</body>
+</html>
